@@ -17,10 +17,17 @@ import java.util.List;
 public class Main extends Application {
 
     public static final int WIDTHBOARD=25, HEIGHTBOARD=25, WIDTHSCENE=900, HEIGHTSCENE=900;
-    public static int direction = 3;
+    public static int direction = 3, headX = 2, headY = 2, tailX = 2, tailY = 2, appleX, appleY;
+    public static Timeline actualize;
 
     @Override
     public void start(Stage primaryStage) throws Exception {
+        int[][] board = new int[WIDTHBOARD][HEIGHTBOARD];
+        board[headY][headX] = direction;
+        appleX = (int)(Math.random()*WIDTHBOARD);
+        appleY = (int)(Math.random()*HEIGHTBOARD);
+        board[appleX][appleY] = -1;
+
         AnchorPane root = new AnchorPane();
 
         Scene scene = new Scene(root, WIDTHSCENE, HEIGHTSCENE);
@@ -29,13 +36,10 @@ public class Main extends Application {
         root.getChildren().add(canvas);
         GraphicsContext gr = canvas.getGraphicsContext2D();
 
-        List<String> player = new ArrayList();
-        player.add("2;2");
-
-        Timeline actualize = new Timeline(new KeyFrame(Duration.millis(100), event -> {
-            drawBoard(canvas, gr, player);
-            advance(player);
-            System.out.println(direction);
+        actualize = new Timeline(new KeyFrame(Duration.millis(100), event -> {
+            advance(board, gr);
+            drawBoard(canvas, gr, board);
+            //showBoard(board);
         }));
 
         actualize.setCycleCount(-1);
@@ -63,49 +67,85 @@ public class Main extends Application {
         stage.show();
     }
 
-    public static void drawBoard(Canvas canvas, GraphicsContext gr, List<String> player){
+    public static void drawBoard(Canvas canvas, GraphicsContext gr, int[][] board){
         gr.setFill(Color.BLACK);
         gr.fillRect(0,0, canvas.getWidth(), canvas.getHeight());
         gr.setStroke(Color.BEIGE);
+        gr.setFill(Color.GREEN);
         for (int i = 0; i <WIDTHBOARD; i++) {
             for (int j = 0; j <HEIGHTBOARD; j++) {
                 gr.strokeRect(i*(WIDTHSCENE/WIDTHBOARD)+2, j*(HEIGHTSCENE/HEIGHTBOARD)+2,
                         WIDTHSCENE/WIDTHBOARD-4, HEIGHTSCENE/HEIGHTBOARD-4);
+                if(board[j][i]>0) gr.fillRect(i*(WIDTHSCENE/WIDTHBOARD)+2, j*(HEIGHTSCENE/HEIGHTBOARD)+2,
+                        WIDTHSCENE/WIDTHBOARD-4, HEIGHTSCENE/HEIGHTBOARD-4);
             }
         }
-        gr.setFill(Color.GREEN);
-        for (int i = 0; i < player.size(); i++) {
-            String[] coordinates = player.get(i).split(";");
-            int y = Integer.parseInt(coordinates[0]), x = Integer.parseInt(coordinates[1]);
-            gr.fillRect(y*(WIDTHSCENE/WIDTHBOARD)+2, x*(HEIGHTSCENE/HEIGHTBOARD)+2,
-                    WIDTHSCENE/WIDTHBOARD-4, HEIGHTSCENE/HEIGHTBOARD-4);
+        gr.setFill(Color.RED);
+        gr.fillRect(appleY*(WIDTHSCENE/WIDTHBOARD)+2, appleX*(HEIGHTSCENE/HEIGHTBOARD)+2,
+                WIDTHSCENE/WIDTHBOARD-4, HEIGHTSCENE/HEIGHTBOARD-4);
+    }
+
+    public static void advance(int[][] board, GraphicsContext gr){
+        boolean grow = false;
+        board[headY][headX] = direction;
+        switch(direction){
+            case 1:
+                headY--;
+                break;
+            case 2:
+                headX++;
+                break;
+            case 3:
+                headY++;
+                break;
+            case 4:
+                headX--;
+                break;
+        }
+        if(board[headY][headX]>0) gameOver(gr);
+        if(board[headY][headX] == -1){
+            grow = true;
+            do{
+                appleY = (int)(Math.random()*HEIGHTBOARD);
+                appleX = (int)(Math.random()*WIDTHBOARD);
+            }while(board[appleX][appleY] != 0);
+            board[appleX][appleY] = -1;
+        }
+        board[headY][headX] = direction;
+        if(!grow) {
+            switch (board[tailY][tailX]) {
+                case 1:
+                    board[tailY][tailX] = 0;
+                    tailY--;
+                    break;
+                case 2:
+                    board[tailY][tailX] = 0;
+                    tailX++;
+                    break;
+                case 3:
+                    board[tailY][tailX] = 0;
+                    tailY++;
+                    break;
+                case 4:
+                    board[tailY][tailX] = 0;
+                    tailX--;
+                    break;
+            }
         }
     }
 
-    public static void advance(List<String> player){
-        String[] coordinates = player.get(0).split(";");
-        int y = Integer.parseInt(coordinates[0]), x = Integer.parseInt(coordinates[1]);
+    public static void gameOver(GraphicsContext gr){
+        actualize.stop();
+        gr.clearRect(0,0,1000, 1000);
+    }
 
-        switch(direction){
-            case 1:
-                x--;
-                break;
-            case 2:
-                y++;
-                break;
-            case 3:
-                x++;
-                break;
-            case 4:
-                y--;
-                break;
-        }
-
-        String newCoordinates = y+";"+x;
-
-        for (int i = player.size()-1; i>=0 ; i--) {
-            if(i==0) player.set(0, newCoordinates);
-            else player.set(i, player.get(i-1));
+    public static void showBoard(int[][] board){
+        System.out.println();
+        for (int i = 0; i < board.length; i++) {
+            for (int j = 0; j <board[i].length; j++) {
+                System.out.print("["+board[i][j]+"] ");
+            }
+            System.out.println();
         }
     }
 
